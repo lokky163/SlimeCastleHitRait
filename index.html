@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Hit Rate Calculator Pro</title>
+    <title>Hit Rate Calculator</title>
     <style>
         :root {
             --primary: #2563eb;
@@ -159,7 +159,7 @@
         const dodge = parseInt(dodgeInput.value) || 0;
         const curRate = getHitRate(acc, dodge);
 
-        const missTargets = [0, 2, 4, 6, 8, 10, 10];
+        const missTargets = [0, 2, 4, 6, 8, 10, 12, 15];
         const rowMiss = document.getElementById('rowMiss');
         const rowAcc = document.getElementById('rowAcc');
         
@@ -167,16 +167,16 @@
         rowAcc.innerHTML = '<th>Точность</th><td class="current-stat">' + acc + '</td>';
 
         missTargets.forEach(m => {
-            const targetHit = 1 - (m/100);
+            const targetHit = 1 - (m / 100);
             rowMiss.innerHTML += `<td>${m}%</td>`;
             rowAcc.innerHTML += `<td>${calcRequiredAcc(targetHit, dodge)}</td>`;
         });
 
         canvas.width = canvas.clientWidth;
         canvas.height = canvas.clientHeight;
-        const p = 60; // padding
-        const w = canvas.width - p*2;
-        const h = canvas.height - p*2;
+        const p = 60;
+        const w = canvas.width - p * 2;
+        const h = canvas.height - p * 2;
         const startX = 0;
         const endX = Math.max(Math.min(10000, calcRequiredAcc(1, dodge)), acc);
 
@@ -188,17 +188,17 @@
 
         ctx.strokeStyle = '#e2e8f0';
         ctx.lineWidth = 1;
-        for(let i=0; i<=10; i++) {
+        for(let i = 0; i <= 10; i++) {
             let y = mY(i/10);
             ctx.beginPath(); ctx.moveTo(p, y); ctx.lineTo(p+w, y); ctx.stroke();
             ctx.fillStyle = '#94a3b8';
-            ctx.fillText((i*10)+'%', p-35, y+4);
+            ctx.fillText((i * 10)+'%', p - 35, y + 4);
         }
 
         ctx.beginPath();
         ctx.strokeStyle = '#10b981';
         ctx.lineWidth = 3;
-        for(let x=0; x<=endX; x += endX/200) {
+        for(let x = 0; x <= endX; x += endX / 200) {
             ctx.lineTo(mX(x), mY(getHitRate(x, dodge)));
         }
         ctx.stroke();
