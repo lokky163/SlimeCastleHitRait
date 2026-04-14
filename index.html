@@ -174,15 +174,17 @@
 
         canvas.width = canvas.clientWidth;
         canvas.height = canvas.clientHeight;
-        const p = 60;
+        const p = 60; 
         const w = canvas.width - p * 2;
         const h = canvas.height - p * 2;
 
-        const startX = calcRequiredAcc(0.8, dodge); // Начинаем с 80% попадания
+        const startX = calcRequiredAcc(0.8, dodge); 
         const endX = Math.max(Math.min(10000, calcRequiredAcc(1, dodge)), acc);
+        const minY = 0.8; // Минимальный шанс попадания (80%)
+        const maxY = 1.0; // Максимальный (100%)
 
         const mX = (x) => p + ((x - startX) / (endX - startX)) * w;
-        const mY = (y) => p + h - (y * h);
+        const mY = (y) => p + h - ((y - minY) / (maxY - minY)) * h;
         const invX = (canvasX) => startX + ((canvasX - p) / w) * (endX - startX);
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -191,12 +193,11 @@
         ctx.lineWidth = 1;
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
-        ctx.font = '12px sans-serif';
-        for(let i = 0; i <= 10; i++) {
-            let y = mY(i / 10);
+        ctx.fillStyle = '#94a3b8';
+        for(let val = 0.8; val <= 1.001; val += 0.05) {
+            let y = mY(val);
             ctx.beginPath(); ctx.moveTo(p, y); ctx.lineTo(p + w, y); ctx.stroke();
-            ctx.fillStyle = '#94a3b8';
-            ctx.fillText((i * 10) + '%', p - 10, y);
+            ctx.fillText(Math.round(val * 100) + '%', p - 10, y);
         }
 
         ctx.textAlign = "center";
@@ -211,8 +212,10 @@
         ctx.lineWidth = 3;
         let first = true;
         for(let x = startX; x <= endX; x += (endX - startX) / 200) {
+            let rate = getHitRate(x, dodge);
+            if (rate < minY) continue;
             let px = mX(x);
-            let py = mY(getHitRate(x, dodge));
+            let py = mY(rate);
             if (first) {
                 ctx.moveTo(px, py);
                 first = false;
@@ -235,43 +238,45 @@
             const hoverAcc = Math.round(invX(mouseX));
             const hoverHit = getHitRate(hoverAcc, dodge);
             
-            ctx.strokeStyle = '#f59e0b';
-            ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(mouseX, p); ctx.lineTo(mouseX, p + h); ctx.stroke();
-            
-            const tipW = 160;
-            const tipH = 75;
-            let tipX = mouseX + 15;
-            let tipY = p;
+            if (hoverHit >= minY) {
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 1;
+                ctx.beginPath(); ctx.moveTo(mouseX, p); ctx.lineTo(mouseX, p + h); ctx.stroke();
+                
+                const tipW = 160;
+                const tipH = 75;
+                let tipX = mouseX + 15;
+                let tipY = p + 10;
+                if (tipX + tipW > canvas.width) tipX = mouseX - tipW - 15;
 
-            if (tipX + tipW > canvas.width) tipX = mouseX - tipW - 15;
+                ctx.fillStyle = 'rgba(30, 41, 59, 0.95)';
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(tipX, tipY, tipW, tipH, 8); 
+                else ctx.rect(tipX, tipY, tipW, tipH);
+                ctx.fill();
 
-            ctx.fillStyle = 'rgba(30, 41, 59, 0.95)';
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(tipX, tipY, tipW, tipH, 8); 
-            else ctx.rect(tipX, tipY, tipW, tipH);
-            ctx.fill();
-
-            ctx.fillStyle = 'white';
-            ctx.textAlign = "left";
-            ctx.font = '13px sans-serif';
-            ctx.fillText(`Точность: ${hoverAcc}`, tipX + 12, tipY + 22);
-            ctx.fillText(`Попадание: ${(hoverHit * 100).toFixed(1)}%`, tipX + 12, tipY + 42);
-            ctx.fillText(`Промах: ${((1 - hoverHit) * 100).toFixed(1)}%`, tipX + 12, tipY + 62);
+                ctx.fillStyle = 'white';
+                ctx.textAlign = "left";
+                ctx.font = '13px sans-serif';
+                ctx.fillText(`Точность: ${hoverAcc}`, tipX + 12, tipY + 22);
+                ctx.fillText(`Попадание: ${(hoverHit * 100).toFixed(1)}%`, tipX + 12, tipY + 42);
+                ctx.fillText(`Промах: ${((1 - hoverHit) * 100).toFixed(1)}%`, tipX + 12, tipY + 62);
+            }
         }
 
         ctx.fillStyle = '#1e293b';
         ctx.font = 'bold 13px sans-serif';
         ctx.textAlign = "center";
-        ctx.fillText("Точность", p + w / 2, p + h + 45);
+        ctx.fillText("ТОЧНОСТЬ", p + w / 2, p + h + 45);
 
         ctx.save();
         ctx.translate(15, p + h / 2);
         ctx.rotate(-Math.PI / 2);
         ctx.textAlign = "center";
-        ctx.fillText("Шанс попадания", 0, 0);
+        ctx.fillText("ШАНС ПОПАДАНИЯ", 0, 0);
         ctx.restore();
     }
+
 
     bossSelect.addEventListener('change', updateUI);
     dodgeInput.addEventListener('input', draw);
