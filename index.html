@@ -89,7 +89,7 @@
         <select id="bossSelect"></select>
     </div>
     <div class="input-group">
-        <label>Додж:</label>
+        <label>Уворот босса:</label>
         <input type="number" id="dodgeInput" value="400">
     </div>
     <div class="input-group">
@@ -132,7 +132,7 @@
     });
 
     function getHitRate(accuracy, dodge) {
-        if (accuracy + dodge === 0) return 0;
+        if (accuracy + dodge === 0) return 0.0;
         return Math.max(0, Math.min(accuracy / (accuracy + dodge) + 0.1, 1.0));
     }
 
@@ -178,10 +178,10 @@
         const w = canvas.width - p * 2;
         const h = canvas.height - p * 2;
 
-        const startX = calcRequiredAcc(0.8, dodge); 
-        const endX = Math.max(Math.min(10000, calcRequiredAcc(1, dodge)), acc);
-        const minY = 0.8; // Минимальный шанс попадания (80%)
-        const maxY = 1.0; // Максимальный (100%)
+        const startX = Math.min(acc, calcRequiredAcc(0.8, dodge)); 
+        const endX = Math.max(Math.min(10000, calcRequiredAcc(1, dodge)), acc) + 10;
+        const minY = Math.floor(getHitRate(startX, dodge) / 0.05) * 0.05;
+        const maxY = Math.max(getHitRate(endX, dodge) + 0.02, 1.02);
 
         const mX = (x) => p + ((x - startX) / (endX - startX)) * w;
         const mY = (y) => p + h - ((y - minY) / (maxY - minY)) * h;
@@ -194,15 +194,16 @@
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
         ctx.fillStyle = '#94a3b8';
-        for(let val = 0.8; val <= 1.001; val += 0.05) {
+        for(let val = minY; val <= maxY; val += 0.05) {
             let y = mY(val);
             ctx.beginPath(); ctx.moveTo(p, y); ctx.lineTo(p + w, y); ctx.stroke();
             ctx.fillText(Math.round(val * 100) + '%', p - 10, y);
         }
 
         ctx.textAlign = "center";
-        for(let i = 0; i <= 5; i++) {
-            let val = startX + (i * (endX - startX) / 5);
+        const xLabels = 15;
+        for(let i = 0; i <= xLabels; i++) {
+            let val = startX + (i * (endX - startX) / xLabels);
             let x = mX(val);
             ctx.fillText(Math.round(val), x, p + h + 20);
         }
