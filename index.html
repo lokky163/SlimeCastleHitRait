@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Hit Rate Calculator Pro</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        header {
+            background: var(--card);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .input-group { display: flex; align-items: center; gap: 10px; }
+        select, input {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            outline: none;
+            font-size: 14px;
+        }
+        select:focus, input:focus { border-color: var(--primary); }
+        
+        main {
+            flex-grow: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            min-height: 0;
+        }
+        #chartWrapper {
+            flex-grow: 1;
+            background: var(--card);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            position: relative;
+            cursor: crosshair;
+        }
+        canvas { width: 100%; height: 100%; display: block; }
+
+        footer {
+            background: var(--card);
+            padding: 20px;
+            border-top: 1px solid var(--border);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid var(--border);
+        }
+        th { background: #f1f5f9; color: #64748b; font-weight: 600; }
+        .current-stat {
+            background: #eff6ff;
+            color: var(--primary);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="input-group">
+        <label>Цель:</label>
+        <select id="bossSelect"></select>
+    </div>
+    <div class="input-group">
+        <label>Додж:</label>
+        <input type="number" id="dodgeInput" value="400">
+    </div>
+    <div class="input-group">
+        <label>Ваша точность:</label>
+        <input type="number" id="accInput" value="2000">
+    </div>
+</header>
+
+<main>
+    <div id="chartWrapper">
+        <canvas id="hitChart"></canvas>
+    </div>
+</main>
+
+<footer>
+    <table id="statsTable">
+        <tr id="rowMiss"><th>Процент промахов</th></tr>
+        <tr id="rowAcc"><th>Нужная точность</th></tr>
+    </table>
+</footer>
+
+<script>
+    const canvas = document.getElementById('hitChart');
+    const ctx = canvas.getContext('2d');
+    const bossSelect = document.getElementById('bossSelect');
+    const dodgeInput = document.getElementById('dodgeInput');
+    const accInput = document.getElementById('accInput');
+    
+    let mouseX = -1;
+
+    const bosses = [{ name: 'Кастомный', val: null }];
+    for(let i=1; i<=16; i++) {
+        bosses.push({ name: `Босс ${i}`, val: (i)*50 });
+    }
+    bosses.forEach((b, i) => {
+        let opt = document.createElement('option');
+        opt.value = i;
+        opt.textContent = b.name;
+        bossSelect.appendChild(opt);
+    });
+
+    function getHitRate(accuracy, dodge) {
+        if (accuracy + dodge === 0) return 0;
+        return Math.max(0, Math.min(accuracy / (accuracy + dodge) + 0.1, 1.0));
+    }
+
+    function calcRequiredAcc(targetRate, dodge) {
+        let k = targetRate - 0.1;
+        if (k <= 0) return 0;
+        if (k >= 1) return 9 * dodge;
+        return Math.ceil((k * dodge) / (1 - k));
+    }
+
+    function updateUI() {
+        const selected = bosses[bossSelect.value];
+        if (selected.val !== null) {
+            dodgeInput.value = selected.val;
+            dodgeInput.disabled = true;
+        } else {
+            dodgeInput.disabled = false;
+        }
+        draw();
+    }
+
+    function draw() {
+        const acc = parseInt(accInput.value) || 0;
+        const dodge = parseInt(dodgeInput.value) || 0;
+        const curRate = getHitRate(acc, dodge);
+
+        const missTargets = [0, 2, 4, 6, 8, 10, 10];
+        const rowMiss = document.getElementById('rowMiss');
+        const rowAcc = document.getElementById('rowAcc');
+        
+        rowMiss.innerHTML = '<th>% Промахов</th><td class="current-stat">Текущий (' + ((1 - curRate)*100).toFixed(1) + '%)</td>';
+        rowAcc.innerHTML = '<th>Точность</th><td class="current-stat">' + acc + '</td>';
+
+        missTargets.forEach(m => {
+            const targetHit = 1 - (m/100);
+            rowMiss.innerHTML += `<td>${m}%</td>`;
+            rowAcc.innerHTML += `<td>${calcRequiredAcc(targetHit, dodge)}</td>`;
+        });
+
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+        const p = 60; // padding
+        const w = canvas.width - p*2;
+        const h = canvas.height - p*2;
+        const startX = 0;
+        const endX = Math.max(Math.min(10000, calcRequiredAcc(1, dodge)), acc);
+
+        const mX = (x) => p + (x / endX) * w;
+        const mY = (y) => p + h - (y * h);
+        const invX = (canvasX) => ((canvasX - p) / w) * endX;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 1;
+        for(let i=0; i<=10; i++) {
+            let y = mY(i/10);
+            ctx.beginPath(); ctx.moveTo(p, y); ctx.lineTo(p+w, y); ctx.stroke();
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText((i*10)+'%', p-35, y+4);
+        }
+
+        ctx.beginPath();
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 3;
+        for(let x=0; x<=endX; x += endX/200) {
+            ctx.lineTo(mX(x), mY(getHitRate(x, dodge)));
+        }
+        ctx.stroke();
+
+        const curX = mX(acc);
+        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = '#2563eb';
+        ctx.beginPath(); ctx.moveTo(curX, p); ctx.lineTo(curX, p+h); ctx.stroke();
+        ctx.setLineDash([]);
+
+        if (mouseX > p && mouseX < p + w) {
+            const hoverAcc = Math.round(invX(mouseX));
+            const hoverHit = getHitRate(hoverAcc, dodge);
+            ctx.strokeStyle = '#f59e0b';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(mouseX, p); ctx.lineTo(mouseX, p + h); ctx.stroke();
+            
+            const tipW = 150;
+            const tipH = 70;
+            let tipX = mouseX + 10;
+            let tipY = p;
+
+            if (tipX + tipW > canvas.width) {
+                tipX = mouseX - tipW - 10;
+            }
+
+            ctx.fillStyle = 'rgba(30, 41, 59, 0.9)';
+            ctx.beginPath();
+            ctx.roundRect(tipX, tipY, tipW, tipH, 5);
+            ctx.fill();
+
+            ctx.fillStyle = 'white';
+            ctx.font = '13px sans-serif';
+            ctx.fillText(`Точность: ${hoverAcc}`, tipX + 12, tipY + 20);
+            ctx.fillText(`Попадание: ${(hoverHit * 100).toFixed(1)}%`, tipX + 12, tipY + 40);
+            ctx.fillText(`Промах: ${((1 - hoverHit) * 100).toFixed(1)}%`, tipX + 12, tipY + 60);
+        }
+
+        ctx.fillStyle = '#1e293b';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = "center";
+        ctx.fillText("Точность", p + w/2, p + h + 45);
+
+        ctx.save();
+        ctx.translate(20, p + h/2);
+        ctx.rotate(-Math.PI/2);
+        ctx.textAlign = "center";
+        ctx.fillStyle = '#1e293b';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText("Процент  попадания", 0, 0);
+        ctx.restore();
+    }
+
+    bossSelect.addEventListener('change', updateUI);
+    dodgeInput.addEventListener('input', draw);
+    accInput.addEventListener('input', draw);
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouseX = e.clientX - rect.left;
+        draw();
+    });
+    canvas.addEventListener('mouseleave', () => { mouseX = -1; draw(); });
+    window.addEventListener('resize', draw);
+
+    updateUI();
+</script>
+
+</body>
+</html>
