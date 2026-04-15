@@ -23,23 +23,40 @@
         }
         header {
             background: var(--card);
-            padding: 1rem 2rem;
+            padding: 1rem 1.5rem;
             border-bottom: 1px solid var(--border);
             display: flex;
-            gap: 20px;
+            gap: 15px;
             align-items: center;
+            flex-wrap: wrap;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        .input-group { display: flex; align-items: center; gap: 10px; }
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
         select, input {
-            padding: 8px 12px;
+            padding: 8px 10px;
             border: 1px solid var(--border);
             border-radius: 6px;
             outline: none;
             font-size: 14px;
+            background: white;
+        }
+        /* Компактные поля ввода для чисел */
+        input[type="number"] {
+            width: 100px;
         }
         select:focus, input:focus { border-color: var(--primary); }
         
+        .warning-text {
+            font-size: 13px;
+            color: #dc2626;
+            font-weight: 500;
+            margin-left: auto;
+        }
+
         main {
             flex-grow: 1;
             padding: 20px;
@@ -97,9 +114,16 @@
         <input type="number" id="accInput" value="2000">
     </div>
     <div class="input-group">
+        <label>Вариант расчёта:</label>
+        <select id="calcModeSelect">
+            <option value="mode1">Абсолютная прибавка</option>
+            <option value="mode2">Относительная прибавка</option>
+        </select>
+    </div>
+    <div class="input-group">
         <div>
             <label style="font-weight: bold;">
-                Предупреждение: Значения уворотов боссов не окончательные, <br>
+                Предупреждение: Значения уворотов боссов не окончательные, 
                 не стоит доверять этому калькулятору на 100%
             </label>
         </div>
@@ -126,6 +150,7 @@
     const bossSelect = document.getElementById('bossSelect');
     const dodgeInput = document.getElementById('dodgeInput');
     const accInput = document.getElementById('accInput');
+    const calcModeSelect = document.getElementById('calcModeSelect');
     
     let mouseX = -1;
 
@@ -144,14 +169,27 @@
 
     function calcHitRate(accuracy, dodge) {
         if (accuracy + dodge === 0) return 0.0;
-        return Math.max(0, Math.min(accuracy / (accuracy + dodge) + 0.1, 1.0));
+        const mode = calcModeSelect.value;
+        if (mode === 'mode1') {
+            return Math.max(0, Math.min(accuracy / (accuracy + dodge) + 0.1, 1.0));
+        } else {
+            return Math.max(0, Math.min(accuracy / (accuracy + dodge) * 1.1, 1.0));
+        }
     }
 
     function calcRequiredAcc(targetRate, dodge) {
-        if (targetRate <= 0) return 0;
-        if (targetRate >= 1) return 9 * dodge;
-        let k = targetRate - 0.1;
-        return Math.ceil((k * dodge) / (1 - k));
+        const mode = calcModeSelect.value;
+        if (mode == 'mode1') {
+            if (targetRate <= 0) return 0;
+            if (targetRate >= 1) return 9 * dodge;
+            let k = targetRate - 0.1;
+            return Math.ceil((k * dodge) / (1 - k));
+        } else {
+            if (targetRate <= 0) return 0;
+            if (targetRate >= 1) return 10 * dodge;
+            let k = targetRate / 1.1;
+            return Math.ceil((k * dodge) / (1 - k));
+        }
     }
 
     function updateUI() {
@@ -296,6 +334,7 @@
     bossSelect.addEventListener('change', updateUI);
     dodgeInput.addEventListener('input', draw);
     accInput.addEventListener('input', draw);
+    calcModeSelect.addEventListener('change', draw);
     canvas.addEventListener('mousemove', (e) => {
         const rect = canvas.getBoundingClientRect();
         mouseX = e.clientX - rect.left;
