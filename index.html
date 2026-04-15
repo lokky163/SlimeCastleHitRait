@@ -114,9 +114,9 @@
 
 <footer>
     <table id="statsTable">
-        <tr id="rowMiss"><th>Процент промахов</th></tr>
-        <tr id="rowHit"><th>Процент попаданий</th></tr>
-        <tr id="rowAcc"><th>Нужная точность</th></tr>
+        <tr id="rowMiss"></tr>
+        <tr id="rowHit"></tr>
+        <tr id="rowAcc"></tr>
     </table>
 </footer>
 
@@ -130,9 +130,11 @@
     let mouseX = -1;
 
     const bosses = [{ name: 'Кастомный', val: null }];
+
     for(let i = 1; i <= 19; i++) {
         bosses.push({ name: `Босс ${i}`, val: (i) * 50 });
     }
+
     bosses.forEach((b, i) => {
         let opt = document.createElement('option');
         opt.value = i;
@@ -140,7 +142,7 @@
         bossSelect.appendChild(opt);
     });
 
-    function getHitRate(accuracy, dodge) {
+    function calcHitRate(accuracy, dodge) {
         if (accuracy + dodge === 0) return 0.0;
         return Math.max(0, Math.min(accuracy / (accuracy + dodge) + 0.1, 1.0));
     }
@@ -166,21 +168,21 @@
     function draw() {
         const acc = parseInt(accInput.value) || 0;
         const dodge = parseInt(dodgeInput.value) || 0;
-        const curRate = getHitRate(acc, dodge);
+        const curRate = calcHitRate(acc, dodge);
 
         const missTargets = [0, 2, 4, 6, 8, 10, 12, 15, 20];
         const rowMiss = document.getElementById('rowMiss');
         const rowHit = document.getElementById('rowHit');
         const rowAcc = document.getElementById('rowAcc');
         
-        rowMiss.innerHTML = '<th>% Промахов</th><td class="current-stat">Текущий: ' + ((1 - curRate) * 100).toFixed(1) + '%</td>';
-        rowHit.innerHTML = '<th>% Попаданий</th><td class="current-stat">Текущий: ' + (curRate * 100).toFixed(1) + '%</td>';
-        rowAcc.innerHTML = '<th>Точность: </th><td class="current-stat">Текущая: ' + acc + '</td>';
+        rowMiss.innerHTML = '<th>% Промахов</th> <td class="current-stat">Текущий: ' + ((1 - curRate) * 100).toFixed(1) + '%</td>';
+        rowHit.innerHTML = '<th>% Попаданий</th> <td class="current-stat">Текущий: ' + (curRate * 100).toFixed(1) + '%</td>';
+        rowAcc.innerHTML = '<th>Точность: </th> <td class="current-stat">Текущая: ' + acc + '</td>';
 
         missTargets.forEach(m => {
-            const targetHit = 1 - (m / 100);
             rowMiss.innerHTML += `<td>${m}%</td>`;
             rowHit.innerHTML += `<td>${100 - m}%</td>`;
+            const targetHit = 1 - (m / 100);
             rowAcc.innerHTML += `<td>${calcRequiredAcc(targetHit, dodge)}</td>`;
         });
 
@@ -192,8 +194,8 @@
 
         const startX = Math.min(acc, calcRequiredAcc(0.8, dodge)); 
         const endX = Math.max(Math.min(10000, calcRequiredAcc(1, dodge)), acc) + 10;
-        const minY = Math.floor(getHitRate(startX, dodge) / 0.05) * 0.05;
-        const maxY = Math.max(getHitRate(endX, dodge) + 0.02, 1.02);
+        const minY = Math.floor(calcHitRate(startX, dodge) / 0.05) * 0.05;
+        const maxY = Math.max(calcHitRate(endX, dodge) + 0.02, 1.02);
 
         const mX = (x) => p + ((x - startX) / (endX - startX)) * w;
         const mY = (y) => p + h - ((y - minY) / (maxY - minY)) * h;
@@ -225,7 +227,7 @@
         ctx.lineWidth = 3;
         let first = true;
         for(let x = startX; x <= endX; x += (endX - startX) / 200) {
-            let rate = getHitRate(x, dodge);
+            let rate = calcHitRate(x, dodge);
             if (rate < minY) continue;
             let px = mX(x);
             let py = mY(rate);
@@ -249,7 +251,7 @@
 
         if (mouseX > p && mouseX < p + w) {
             const hoverAcc = Math.round(invX(mouseX));
-            const hoverHit = getHitRate(hoverAcc, dodge);
+            const hoverHit = calcHitRate(hoverAcc, dodge);
             
             if (hoverHit >= minY) {
                 ctx.strokeStyle = '#f59e0b';
