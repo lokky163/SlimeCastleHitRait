@@ -118,7 +118,7 @@ const I18n = (function() {
         const themeBtn = document.getElementById('themeSwitchBtn');
         
         if (themeBtn) {
-            const currentTheme = window.ThemeManager?.getCurrentTheme() || 'light';
+            const currentTheme = ThemeManager?.getCurrentTheme() || 'light';
             const titleKey = currentTheme === 'light' ? 'theme_toggle_dark' : 'theme_toggle_light';
             themeBtn.title = _translations[titleKey] || themeBtn.title;
         }
