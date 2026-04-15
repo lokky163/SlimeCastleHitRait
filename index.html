@@ -107,6 +107,7 @@
 <footer>
     <table id="statsTable">
         <tr id="rowMiss"><th>Процент промахов</th></tr>
+        <tr id="rowHit"><th>Процент попаданий</th></tr>
         <tr id="rowAcc"><th>Нужная точность</th></tr>
     </table>
 </footer>
@@ -161,14 +162,17 @@
 
         const missTargets = [0, 2, 4, 6, 8, 10, 12, 15, 20];
         const rowMiss = document.getElementById('rowMiss');
+        const rowHit = document.getElementById('rowHit');
         const rowAcc = document.getElementById('rowAcc');
         
-        rowMiss.innerHTML = '<th>% Промахов</th><td class="current-stat">Текущий (' + ((1 - curRate)*100).toFixed(1) + '%)</td>';
+        rowMiss.innerHTML = '<th>% Промахов</th><td class="current-stat">Текущий (' + ((1 - curRate) * 100).toFixed(1) + '%)</td>';
+        rowHit.innerHTML = '<th>% Попаданий</th><td class="current-stat">Текущий (' + (curRate * 100).toFixed(1) + '%)</td>';
         rowAcc.innerHTML = '<th>Точность</th><td class="current-stat">' + acc + '</td>';
 
         missTargets.forEach(m => {
             const targetHit = 1 - (m / 100);
             rowMiss.innerHTML += `<td>${m}%</td>`;
+            rowHit.innerHTML += `<td>${100 - m}%</td>`;
             rowAcc.innerHTML += `<td>${calcRequiredAcc(targetHit, dodge)}</td>`;
         });
 
