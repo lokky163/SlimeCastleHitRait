@@ -146,9 +146,9 @@
     }
 
     function calcRequiredAcc(targetRate, dodge) {
+        if (targetRate <= 0) return 0;
+        if (targetRate >= 1) return 9 * dodge;
         let k = targetRate - 0.1;
-        if (k <= 0) return 0;
-        if (k >= 1) return 9 * dodge;
         return Math.ceil((k * dodge) / (1 - k));
     }
 
