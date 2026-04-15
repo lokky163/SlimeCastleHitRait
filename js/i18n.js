@@ -120,6 +120,8 @@ const I18n = (function() {
         if (themeBtn) {
             const currentTheme = ThemeManager?.getCurrentTheme() || 'light';
             const titleKey = currentTheme === 'light' ? 'theme_toggle_dark' : 'theme_toggle_light';
+            console.log(window.ThemeManager);
+            console.log(currentTheme);
             themeBtn.title = _translations[titleKey] || themeBtn.title;
         }
         
