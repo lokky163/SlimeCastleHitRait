@@ -1,0 +1,21 @@
+:root {
+    --primary: #60a5fa;
+    --bg: #0e131f;
+    --surface: #131a23;
+    --text: #f3f4f6;
+    --text-muted: #9ca3af;
+    --border: #374151;
+    --border-light: #4b5563;
+}
+
+.warning-item {
+    color: #fbbf24;
+    background: #422006;
+    border-left: 3px solid #f59e0b;
+}
+
+.current-value {
+    background: #698cad;
+    color: #60a5fa;
+    font-weight: 600;
+}

@@ -2,349 +2,115 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hit Rate Calculator</title>
-    <style>
-        :root {
-            --primary: #2563eb;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text: #1e293b;
-            --border: #e2e8f0;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-        }
-        header {
-            background: var(--card);
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        .input-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        select, input {
-            padding: 8px 10px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            outline: none;
-            font-size: 14px;
-            background: white;
-        }
-        /* Компактные поля ввода для чисел */
-        input[type="number"] {
-            width: 100px;
-        }
-        select:focus, input:focus { border-color: var(--primary); }
-        
-        .warning-text {
-            font-size: 13px;
-            color: #dc2626;
-            font-weight: 500;
-            margin-left: auto;
-        }
-
-        main {
-            flex-grow: 1;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            min-height: 0;
-        }
-        #chartWrapper {
-            flex-grow: 1;
-            background: var(--card);
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            position: relative;
-            cursor: crosshair;
-        }
-        canvas { width: 100%; height: 100%; display: block; }
-
-        footer {
-            background: var(--card);
-            padding: 20px;
-            border-top: 1px solid var(--border);
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: center;
-            font-size: 14px;
-        }
-        th, td {
-            padding: 10px;
-            border: 1px solid var(--border);
-        }
-        th { background: #f1f5f9; color: #64748b; font-weight: 600; }
-        .current-stat {
-            background: #eff6ff;
-            color: var(--primary);
-            font-weight: bold;
-        }
-    </style>
+    
+    <!-- Глобальные стили -->
+    <link rel="stylesheet" href="styles/style.css">
+    
+    <!-- Тема по умолчанию (светлая) -->
+    <link rel="stylesheet" href="styles/themes/light/style.css" id="themeStylesheet">
 </head>
 <body>
-
-<header>
-    <div class="input-group">
-        <label>Цель:</label>
-        <select id="bossSelect"></select>
-    </div>
-    <div class="input-group">
-        <label>Уворот босса:</label>
-        <input type="number" id="dodgeInput" value="400">
-    </div>
-    <div class="input-group">
-        <label>Ваша точность:</label>
-        <input type="number" id="accInput" value="2000">
-    </div>
-    <div class="input-group">
-        <label>Вариант расчёта:</label>
-        <select id="calcModeSelect">
-            <option value="mode1">Абсолютная прибавка</option>
-            <option value="mode2">Относительная прибавка</option>
-        </select>
-    </div>
-    <div class="input-group">
-        <div>
-            <label style="font-weight: bold;">
-                Предупреждение: Значения уворотов боссов не окончательные, 
-                не стоит доверять этому калькулятору на 100%
-            </label>
-        </div>
-    </div>
-</header>
-
-<main>
-    <div id="chartWrapper">
-        <canvas id="hitChart"></canvas>
-    </div>
-</main>
-
-<footer>
-    <table id="statsTable">
-        <tr id="rowMiss"></tr>
-        <tr id="rowHit"></tr>
-        <tr id="rowAcc"></tr>
-    </table>
-</footer>
-
-<script>
-    const canvas = document.getElementById('hitChart');
-    const ctx = canvas.getContext('2d');
-    const bossSelect = document.getElementById('bossSelect');
-    const dodgeInput = document.getElementById('dodgeInput');
-    const accInput = document.getElementById('accInput');
-    const calcModeSelect = document.getElementById('calcModeSelect');
-    
-    let mouseX = -1;
-
-    const bosses = [{ name: 'Кастомный', val: null }];
-
-    for(let i = 1; i <= 19; i++) {
-        bosses.push({ name: `Босс ${i}`, val: (i) * 50 });
-    }
-
-    bosses.forEach((b, i) => {
-        let opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = b.name;
-        bossSelect.appendChild(opt);
-    });
-
-    function calcHitRate(accuracy, dodge) {
-        if (accuracy + dodge === 0) return 0.0;
-        const mode = calcModeSelect.value;
-        if (mode === 'mode1') {
-            return Math.max(0, Math.min(accuracy / (accuracy + dodge) + 0.1, 1.0));
-        } else {
-            return Math.max(0, Math.min(accuracy / (accuracy + dodge) * 1.1, 1.0));
-        }
-    }
-
-    function calcRequiredAcc(targetRate, dodge) {
-        const mode = calcModeSelect.value;
-        if (mode == 'mode1') {
-            if (targetRate <= 0) return 0;
-            if (targetRate >= 1) return 9 * dodge;
-            let k = targetRate - 0.1;
-            return Math.ceil((k * dodge) / (1 - k));
-        } else {
-            if (targetRate <= 0) return 0;
-            if (targetRate >= 1) return 10 * dodge;
-            let k = targetRate / 1.1;
-            return Math.ceil((k * dodge) / (1 - k));
-        }
-    }
-
-    function updateUI() {
-        const selected = bosses[bossSelect.value];
-        if (selected.val !== null) {
-            dodgeInput.value = selected.val;
-            dodgeInput.disabled = true;
-        } else {
-            dodgeInput.disabled = false;
-        }
-        draw();
-    }
-
-    function draw() {
-        const acc = parseInt(accInput.value) || 0;
-        const dodge = parseInt(dodgeInput.value) || 0;
-        const curRate = calcHitRate(acc, dodge);
-
-        const missTargets = [0, 2, 4, 6, 8, 10, 12, 15, 20];
-        const rowMiss = document.getElementById('rowMiss');
-        const rowHit = document.getElementById('rowHit');
-        const rowAcc = document.getElementById('rowAcc');
-        
-        rowMiss.innerHTML = '<th>% Промахов</th> <td class="current-stat">Текущий: ' + ((1 - curRate) * 100).toFixed(1) + '%</td>';
-        rowHit.innerHTML = '<th>% Попаданий</th> <td class="current-stat">Текущий: ' + (curRate * 100).toFixed(1) + '%</td>';
-        rowAcc.innerHTML = '<th>Точность: </th> <td class="current-stat">Текущая: ' + acc + '</td>';
-
-        missTargets.forEach(m => {
-            rowMiss.innerHTML += `<td>${m}%</td>`;
-            rowHit.innerHTML += `<td>${100 - m}%</td>`;
-            const targetHit = 1 - (m / 100);
-            rowAcc.innerHTML += `<td>${calcRequiredAcc(targetHit, dodge)}</td>`;
-        });
-
-        canvas.width = canvas.clientWidth;
-        canvas.height = canvas.clientHeight;
-        const p = 60; 
-        const w = canvas.width - p * 2;
-        const h = canvas.height - p * 2;
-
-        const startX = Math.min(acc, calcRequiredAcc(0.8, dodge)); 
-        const endX = Math.max(Math.min(10000, calcRequiredAcc(1, dodge)), acc) + 10;
-        const minY = Math.floor(calcHitRate(startX, dodge) / 0.05) * 0.05;
-        const maxY = Math.max(calcHitRate(endX, dodge) + 0.02, 1.02);
-
-        const mX = (x) => p + ((x - startX) / (endX - startX)) * w;
-        const mY = (y) => p + h - ((y - minY) / (maxY - minY)) * h;
-        const invX = (canvasX) => startX + ((canvasX - p) / w) * (endX - startX);
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        ctx.strokeStyle = '#e2e8f0';
-        ctx.lineWidth = 1;
-        ctx.textAlign = "right";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = '#94a3b8';
-        for(let val = minY; val <= maxY; val += 0.05) {
-            let y = mY(val);
-            ctx.beginPath(); ctx.moveTo(p, y); ctx.lineTo(p + w, y); ctx.stroke();
-            ctx.fillText(Math.round(val * 100) + '%', p - 10, y);
-        }
-
-        ctx.textAlign = "center";
-        const xLabels = 15;
-        for(let i = 0; i <= xLabels; i++) {
-            let val = startX + (i * (endX - startX) / xLabels);
-            let x = mX(val);
-            ctx.fillText(Math.round(val), x, p + h + 20);
-        }
-
-        ctx.beginPath();
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 3;
-        let first = true;
-        for(let x = startX; x <= endX; x += (endX - startX) / 200) {
-            let rate = calcHitRate(x, dodge);
-            if (rate < minY) continue;
-            let px = mX(x);
-            let py = mY(rate);
-            if (first) {
-                ctx.moveTo(px, py);
-                first = false;
-            } else {
-                ctx.lineTo(px, py);
-            }
-        }
-        ctx.stroke();
-
-        if (acc >= startX) {
-            const curX = mX(acc);
-            ctx.setLineDash([5, 5]);
-            ctx.strokeStyle = '#2563eb';
-            ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(curX, p); ctx.lineTo(curX, p + h); ctx.stroke();
-            ctx.setLineDash([]);
-        }
-
-        if (mouseX > p && mouseX < p + w) {
-            const hoverAcc = Math.round(invX(mouseX));
-            const hoverHit = calcHitRate(hoverAcc, dodge);
+    <!-- Панель управления -->
+    <header class="control-panel">
+        <div class="control-row">
+            <!-- Выбор босса -->
+            <div class="control-group">
+                <label class="control-label" data-i18n="target">Цель:</label>
+                <div class="boss-select-wrapper">
+                    <select id="bossSelect" class="control-select"></select>
+                    <!-- <img id="bossIcon" class="boss-icon" src="" alt="" style="display: none;"> -->
+                </div>
+            </div>
             
-            if (hoverHit >= minY) {
-                ctx.strokeStyle = '#f59e0b';
-                ctx.lineWidth = 1;
-                ctx.beginPath(); ctx.moveTo(mouseX, p); ctx.lineTo(mouseX, p + h); ctx.stroke();
-                
-                const tipW = 160;
-                const tipH = 75;
-                let tipX = mouseX + 15;
-                let tipY = p + 10;
-                if (tipX + tipW > canvas.width) tipX = mouseX - tipW - 15;
+            <!-- Уворот босса -->
+            <div class="control-group">
+                <label class="control-label" data-i18n="boss_dodge">Уворот босса:</label>
+                <input type="number" id="dodgeInput" class="control-input" value="400" min="0">
+            </div>
+            
+            <!-- Точность пользователя -->
+            <div class="control-group">
+                <label class="control-label" data-i18n="your_acc">Ваша точность:</label>
+                <input type="number" id="accInput" class="control-input" value="2000" min="0">
+            </div>
+            
+            <!-- Скорость атаки пользователя -->
+            <div class="control-group">
+                <label class="control-label" data-i18n="your_aspd">Ваша скорость атаки:</label>
+                <input type="number" id="aspdInput" class="control-input" value="7.2" min="0" step="0.1">
+            </div>
+            
+            <!-- Выбор формулы -->
+            <div class="control-group">
+                <label class="control-label" data-i18n="calc_formula">Формула расчёта:</label>
+                <select id="calcModeSelect" class="control-select">
+                    <option value="mode1" data-i18n="formula_abs">Абсолютная прибавка</option>
+                    <option value="mode2" data-i18n="formula_rel">Относительная прибавка</option>
+                </select>
+            </div>
+            
+            <!-- Переключатели темы и языка -->
+            <div class="control-group theme-lang-switchers">
+                <button id="langSwitchBtn" class="icon-btn" title="Сменить язык">
+                    <img src="lang/ru/icon.png" alt="Язык" id="langIcon">
+                </button>
+                <button id="themeSwitchBtn" class="icon-btn" title="Сменить тему">
+                    <img src="styles/themes/light/icon.png" alt="Тема" id="themeIcon">
+                </button>
+            </div>
+        </div>
+        
+        <!-- Информационная строка -->
+        <div class="info-row">
+            <div class="formula-display" id="formulaDisplay" data-i18n="formula_abs_display">
+                Шанс попадания = Точность / (Точность + Уворот) + 0.1
+            </div>
+        </div>
+        
+        <!-- Предупреждения и подсказки -->
+        <div class="warnings-row">
+            <div class="warning-item" data-i18n="warning_accuracy">
+                Значения уворотов боссов не окончательные, не стоит доверять этим значениям на 100%
+            </div>
+        </div>
+    </header>
+    
+    <!-- Основная область с таблицей и графиком -->
+    <main class="main-content">
+        <!-- Таблица статистики -->
+        <div class="table-wrapper">
+            <table id="statsTable" class="stats-table">
+                <tr id="rowMiss">
+                    <th data-i18n="table_miss_percent">% Промахов</th>
+                    <td id="currentMiss" class="current-value">0.0%</td>
+                    <!-- Значения будут заполняться динамически -->
+                </tr>
+                <tr id="rowHit">
+                    <th data-i18n="table_hit_percent">% Попаданий</th>
+                    <td id="currentHit" class="current-value">0.0%</td>
+                </tr>
+                <tr id="rowMissCount">
+                    <th data-i18n="table_miss_count">Кол-во промахов</th>
+                    <td id="currentMissCount" class="current-value">0</td>
+                </tr>
+                <tr id="rowAcc">
+                    <th data-i18n="table_accuracy">Точность</th>
+                    <td id="currentAcc" class="current-value">2000</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Интерактивный график -->
+        <div class="chart-wrapper">
+            <canvas id="hitChart"></canvas>
+        </div>
+    </main>
 
-                ctx.fillStyle = 'rgba(30, 41, 59, 0.95)';
-                ctx.beginPath();
-                if (ctx.roundRect) ctx.roundRect(tipX, tipY, tipW, tipH, 8); 
-                else ctx.rect(tipX, tipY, tipW, tipH);
-                ctx.fill();
-
-                ctx.fillStyle = 'white';
-                ctx.textAlign = "left";
-                ctx.font = '13px sans-serif';
-                ctx.fillText(`Точность: ${hoverAcc}`, tipX + 12, tipY + 22);
-                ctx.fillText(`Попадание: ${(hoverHit * 100).toFixed(1)}%`, tipX + 12, tipY + 42);
-                ctx.fillText(`Промах: ${((1 - hoverHit) * 100).toFixed(1)}%`, tipX + 12, tipY + 62);
-            }
-        }
-
-        ctx.fillStyle = '#1e293b';
-        ctx.font = 'bold 13px sans-serif';
-        ctx.textAlign = "center";
-        ctx.fillText("ТОЧНОСТЬ", p + w / 2, p + h + 45);
-
-        ctx.save();
-        ctx.translate(15, p + h / 2);
-        ctx.rotate(-Math.PI / 2);
-        ctx.textAlign = "center";
-        ctx.fillText("ШАНС ПОПАДАНИЯ", 0, 0);
-        ctx.restore();
-    }
-
-
-    bossSelect.addEventListener('change', updateUI);
-    dodgeInput.addEventListener('input', draw);
-    accInput.addEventListener('input', draw);
-    calcModeSelect.addEventListener('change', draw);
-    canvas.addEventListener('mousemove', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        mouseX = e.clientX - rect.left;
-        draw();
-    });
-    canvas.addEventListener('mouseleave', () => { mouseX = -1; draw(); });
-    window.addEventListener('resize', draw);
-
-    updateUI();
-</script>
-
+    <script src="js/i18n.js"></script>
+    <script src="js/theme.js"></script>
+    
+    <script src="js/app.js"></script>
 </body>
 </html>
