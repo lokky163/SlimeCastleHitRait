@@ -14,8 +14,8 @@
     border-left: 3px solid #f59e0b;
 }
 
-.current-value {
-    background: #698cad;
-    color: #60a5fa;
+.stats-table td.current-value {
+    background: #6e8bb1;
+    color: #1e40af;
     font-weight: 600;
 }
