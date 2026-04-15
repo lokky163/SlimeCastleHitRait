@@ -175,7 +175,7 @@
         
         rowMiss.innerHTML = '<th>% Промахов</th><td class="current-stat">Текущий: ' + ((1 - curRate) * 100).toFixed(1) + '%</td>';
         rowHit.innerHTML = '<th>% Попаданий</th><td class="current-stat">Текущий: ' + (curRate * 100).toFixed(1) + '%</td>';
-        rowAcc.innerHTML = '<th>Текущая точность</th><td class="current-stat">' + acc + '</td>';
+        rowAcc.innerHTML = '<th>Текущая: </th><td class="current-stat">' + acc + '</td>';
 
         missTargets.forEach(m => {
             const targetHit = 1 - (m / 100);
