@@ -244,9 +244,9 @@ body {
     border-bottom: none;
 }
 
-.current-value {
-    background: #99caf8;
-    color: #616161;
+.stats-table td.current-value {
+    background: #dbeafe;
+    color: #1e40af;
     font-weight: 600;
 }
 
