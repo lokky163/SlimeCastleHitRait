@@ -17,7 +17,7 @@ const App = (function() {
     let mouseX = -1;
     
     const bosses = [{ name: 'boss_custom', val: null, icon: 'boss_0.png' }];
-    const missTargets = [0, 2, 4, 6, 8, 10, 12, 15, 20];
+    const missTargets = [0, 1, 2, 3, 4, 7, 10, 15, 20];
     
     // ========== ИНИЦИАЛИЗАЦИЯ ==========
     
